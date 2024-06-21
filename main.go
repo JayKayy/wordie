@@ -27,12 +27,13 @@ type Letter struct {
 var (
 	attempts = 5
 	//go:embed dictionary.txt
-	rawWords string
+	rawWords   string
+	dictionary []string
 )
 
 func main() {
 	fmt.Println("Wordie...")
-	dictionary := strings.Split(rawWords, "\n")
+	dictionary = strings.Split(rawWords, "\n")
 	idx := rand.Intn(len(dictionary))
 	word := dictionary[idx]
 	if os.Getenv("DEBUG") != "" {
@@ -98,20 +99,34 @@ func (wp *WordPallet) Search(r rune) (bool, []int) {
 }
 
 func (wp *WordPallet) Play(attempts int) {
-	for guess := 0; guess < attempts; guess++ {
-		if wp.IsSolved() {
-			fmt.Println("SOLVED!")
-			return
-		}
+	guesses := 0
+	for {
 		//   ask for guess.
 		g := Prompt("")
 		//   register guess.
 		err := wp.RegisterGuess(g)
 		if err != nil {
-			fmt.Println("error guessing: %w", err)
+			fmt.Println("error:", err)
+			// mulligan!
+			continue
+		} else {
+			guesses++
+		}
+
+		if wp.IsSolved() {
+			fmt.Println("SOLVED!")
+			switch guesses {
+			case 3:
+				fmt.Println("GET OUTTA HERE FOURS!")
+			case 4:
+				fmt.Println("STUPID FOURS!")
+			}
+			return
+		} else if guesses >= attempts {
+			fmt.Printf("GAME OVER. The wordie was: %s\n", wp.Word)
+			return
 		}
 	}
-	fmt.Printf("GAME OVER. The wordie was: %s\n", wp.Word)
 }
 
 func (wp *WordPallet) IsSolved() bool {
@@ -130,6 +145,12 @@ func (wp *WordPallet) RegisterGuess(raw string) error {
 		return fmt.Errorf("bad length: %d, use length: %d", len(guess), len(wp.Pallet))
 	}
 	// TODO check dictionary validity of guess
+	debug := os.Getenv("DEBUG")
+	if debug == "" {
+		if !slices.Contains(dictionary, guess) {
+			return fmt.Errorf("guess not found in dictionary")
+		}
+	}
 	m := map[rune]int{}
 
 	for i, v := range guess {
