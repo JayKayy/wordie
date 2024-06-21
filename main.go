@@ -111,6 +111,7 @@ func (wp *WordPallet) Play(attempts int) {
 			fmt.Println("error guessing: %w", err)
 		}
 	}
+	fmt.Printf("GAME OVER. The wordie was: %s\n", wp.Word)
 }
 
 func (wp *WordPallet) IsSolved() bool {
@@ -129,6 +130,7 @@ func (wp *WordPallet) RegisterGuess(raw string) error {
 		return fmt.Errorf("bad length: %d, use length: %d", len(guess), len(wp.Pallet))
 	}
 	// TODO check dictionary validity of guess
+	m := map[rune]int{}
 
 	for i, v := range guess {
 		color.Set(color.FgHiWhite)
@@ -140,13 +142,21 @@ func (wp *WordPallet) RegisterGuess(raw string) error {
 		} else if found && !slices.Contains(positions, i) {
 			// Yellow
 			color.Set(color.BgHiYellow, color.FgBlack)
+
+			count := len(positions)
+			num := m[v]
+			// fmt.Printf("num: %d, count:%d", num, count)
+			if num >= count {
+				color.Unset()
+			}
+
 		} else {
 			// bust
 			color.Unset()
 		}
 
+		m[v]++
 		fmt.Printf(" %c ", v)
-
 		color.Unset()
 	}
 	fmt.Println()
